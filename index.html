@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -7618,9 +7618,70 @@
                                 </tr>
                             `).join('')}
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
+            `;
+
+            const renderComplianceTable = () => `
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700">Date/Time</th>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700">Vehicle</th>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700">Driver</th>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700">Type</th>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700 text-right">Amount</th>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700 text-center">Approve</th>
+                                    <th class="p-4 border-b border-slate-100 dark:border-slate-700 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-slate-100 dark:divide-slate-700">
+                                ${complianceLogs.length === 0 ? '<tr><td colspan="7" class="p-8 text-center text-slate-400">No compliance records found.</td></tr>' :
+                    complianceLogs.map(l => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors even:bg-slate-100 dark:even:bg-slate-800/50">
+                                        <td class="p-4 font-mono text-slate-600 dark:text-slate-400">${l.date || '-'}</td>
+                                        <td class="p-4 font-bold text-slate-800 dark:text-white">${l.vehicleNumber || '-'}</td>
+                                        <td class="p-4 text-slate-600 dark:text-slate-400">${l.driverName}</td>
+                                        <td class="p-4 text-slate-600 dark:text-slate-400">${l.type || 'General'}</td>
+                                        <td class="p-4 text-center">
+                                            <input type="number" id="comp-amt-${l.id}" value="${l.amount || ''}" 
+                                                class="w-24 px-2 py-1 border border-slate-200 rounded text-right font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            ${l.status === 'Approved' ?
+                            `<div class="flex items-center gap-2 justify-center">
+                                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold"><i class="ph-bold ph-check"></i> Approved</span>
+                                                    <button onclick="approveExpense('ams_compliance_logs', '${l.id}', document.getElementById('comp-amt-${l.id}').value)" 
+                                                        class="w-6 h-6 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-indigo-600 flex items-center justify-center transition-colors" title="Update Amount">
+                                                        <i class="ph-bold ph-arrows-clockwise"></i>
+                                                    </button>
+                                                </div>` :
+                            `<button onclick="approveExpense('ams_compliance_logs', '${l.id}', document.getElementById('comp-amt-${l.id}').value)" 
+                                                    class="px-3 py-1 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 shadow-sm transition-all hover:scale-105 active:scale-95">
+                                                    Approve
+                                                </button>`
+                        }
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button onclick="openExpenseModal('compliance', '${l.id}')" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-colors" title="Edit Log">
+                                                    <i class="ph-bold ph-pencil-simple text-lg"></i>
+                                                </button>
+                                                <button onclick="softDeleteItem('${l.id}', 'ams_compliance_logs', 'complianceLogs', 'Compliance Log', 'Fuel & Maintenance > Compliance')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors" title="Delete Log">
+                                                    <i class="ph-bold ph-trash text-lg"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
+
 
             return `
             <div class="space-y-6">
@@ -9490,7 +9551,7 @@
 
         // -- EXPENSE (Police/Toll) --
         window.openExpenseModal = (type, id = null) => {
-            const list = type === 'police' ? (state.policeLogs || state.policeFines) : state.tollLogs;
+            const list = type === 'police' ? (state.policeLogs || state.policeFines) : (type === 'compliance' ? state.complianceLogs : state.tollLogs);
             state.editExpenseLog = id ? list.find(l => l.id === id) : null;
             state.editExpenseType = type;
             state.modal = renderExpenseModalContent();
@@ -9510,7 +9571,7 @@
                 <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden scale-in">
                     <div class="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                          <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
-                             <i class="ph-bold ${type === 'police' ? 'ph-siren text-rose-500' : 'ph-road-horizon text-blue-500'}"></i> ${isEdit ? 'Edit Entry' : 'Add Entry'} (${type === 'police' ? 'Police' : 'Toll'})
+                             <i class="ph-bold ${type === 'police' ? 'ph-siren text-rose-500' : (type === 'compliance' ? 'ph-shield-check text-indigo-500' : 'ph-road-horizon text-blue-500')}"></i> ${isEdit ? 'Edit Entry' : 'Add Entry'} (${type === 'police' ? 'Police' : (type === 'compliance' ? 'Compliance' : 'Toll')})
                         </h3>
                         <button onclick="closeModal()" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-500"><i class="ph-bold ph-x"></i></button>
                     </div>
@@ -9593,7 +9654,7 @@
             btn.disabled = true;
 
             const type = state.editExpenseType;
-            const coll = type === 'police' ? 'ams_police_fines' : 'ams_toll_logs';
+            const coll = type === 'police' ? 'ams_police_fines' : (type === 'compliance' ? 'ams_compliance_logs' : 'ams_toll_logs');
 
             try {
                 if (id) {
